@@ -72,9 +72,10 @@ void Controller::handleInput(QString filename, QString task, int resize) {
         lat1 = geocoder.getLatitude(imgPath);
         lon1 = geocoder.getLongitude(imgPath);
         if(lat2 != -1 && lon2 != -1)
-            //qDebug() << "Distance: " << geocoder.getDistanceFromLatLongInKm(lat1, lon1, lat2, lon2) * 1000 << " [m]";
+            qDebug() << "Distance: " << geocoder.getDistanceFromLatLongInKm(lat1, lon1, lat2, lon2) * 1000 << " [m]";
 
-        geocoder.reverseGeocode(lat1, lon1);
+        if(!geocoder.checkIfImageIsGeocoded(imgPath))
+            geocoder.reverseGeocode(lat1, lon1);
 
         cv::resize(img, img, cv::Size(img.cols/resize, img.rows/resize));
 
