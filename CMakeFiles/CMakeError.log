@@ -1,0 +1,29 @@
+Performing C++ SOURCE FILE Test LEAK_SANITIZER_AVAILABLE failed with the following output:
+Change Dir: /Users/mehmed/DataAnalyticsUAV/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/make cmTC_cca60/fast && /Applications/Xcode.app/Contents/Developer/usr/bin/make  -f CMakeFiles/cmTC_cca60.dir/build.make CMakeFiles/cmTC_cca60.dir/build
+Building CXX object CMakeFiles/cmTC_cca60.dir/src.cxx.o
+/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++   -DLEAK_SANITIZER_AVAILABLE -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.15.sdk -mmacosx-version-min=10.14   -fsanitize=leak -std=gnu++11 -o CMakeFiles/cmTC_cca60.dir/src.cxx.o -c /Users/mehmed/DataAnalyticsUAV/CMakeFiles/CMakeTmp/src.cxx
+clang: error: unsupported option '-fsanitize=leak' for target 'x86_64-apple-darwin18.7.0'
+make[1]: *** [CMakeFiles/cmTC_cca60.dir/src.cxx.o] Error 1
+make: *** [cmTC_cca60/fast] Error 2
+
+
+Source file was:
+int main() { return 0; }
+Determining if the function connect exists in the socket; failed with the following output:
+Change Dir: /Users/mehmed/DataAnalyticsUAV/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/make cmTC_04050/fast && /Applications/Xcode.app/Contents/Developer/usr/bin/make  -f CMakeFiles/cmTC_04050.dir/build.make CMakeFiles/cmTC_04050.dir/build
+Building C object CMakeFiles/cmTC_04050.dir/CheckFunctionExists.c.o
+/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc   -DCHECK_FUNCTION_EXISTS=connect -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.15.sdk -mmacosx-version-min=10.14 -o CMakeFiles/cmTC_04050.dir/CheckFunctionExists.c.o -c /usr/local/Cellar/cmake/3.18.3/share/cmake/Modules/CheckFunctionExists.c
+Linking C executable cmTC_04050
+/usr/local/Cellar/cmake/3.18.3/bin/cmake -E cmake_link_script CMakeFiles/cmTC_04050.dir/link.txt --verbose=1
+/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/cc   -DCHECK_FUNCTION_EXISTS=connect -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.15.sdk -mmacosx-version-min=10.14 -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/cmTC_04050.dir/CheckFunctionExists.c.o -o cmTC_04050  -lsocket 
+ld: library not found for -lsocket
+clang: error: linker command failed with exit code 1 (use -v to see invocation)
+make[1]: *** [cmTC_04050] Error 1
+make: *** [cmTC_04050/fast] Error 2
+
+
+
