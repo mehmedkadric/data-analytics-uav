@@ -44,6 +44,10 @@ QString Geocoder::reverseGeocode(double latitude, double longitude) {
     return url;
 }
 
+bool Geocoder::checkIfImageIsGeocoded(QString imgPath) {
+    return true;
+}
+
 void Geocoder::geocodingFinished(QNetworkReply *reply) {
     QString json = reply->readAll();
     JsonParser jsonParser;
