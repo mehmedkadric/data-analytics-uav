@@ -1,4 +1,6 @@
 #include "imageanalyzer.h"
+#include <QDebug>
+
 
 ImageAnalyzer::ImageAnalyzer()
 {
@@ -81,7 +83,6 @@ cv::Mat ImageAnalyzer::watershedSegmentation(cv::Mat orig) {
                 dst.at<cv::Vec3b>(i,j) = cv::Vec3b(0,0,0);
         }
     }
-
     return dst;
 }
 
@@ -110,11 +111,11 @@ cv::Mat ImageAnalyzer::geometrySegmentation2D(cv::Mat img, bool filled) {
     //cv::morphologyEx(out_img, out_img, 3, element);
 
     double otsu_thresh_val = cv::threshold(
-        orig_img, _img, 0, 255, cv::THRESH_BINARY | cv::THRESH_OTSU
-    );
+                orig_img, _img, 0, 255, cv::THRESH_BINARY | cv::THRESH_OTSU
+                );
 
     double high_thresh_val  = otsu_thresh_val,
-           lower_thresh_val = otsu_thresh_val * 0.5;
+            lower_thresh_val = otsu_thresh_val * 0.5;
 
     cv::Canny( orig_img, canny_output, lower_thresh_val, high_thresh_val );
 
@@ -175,46 +176,45 @@ cv::Mat ImageAnalyzer::homogenizeColors(cv::Mat img, cv::Mat mask) {
             cv::bitwise_and(img, img, singleContour, drawing);
 
 
-           if(calculateMaxHistogramValue(singleContour, false) == 14) {
+            if(calculateMaxHistogramValue(singleContour, false) == 14) {
                 cv::Mat colorMask(drawing.rows, drawing.cols, CV_8UC3, cv::Scalar(0, 75, 150)), final;
                 cv::bitwise_and(colorMask, colorMask, final, drawing);
                 finalImage += final;
             } else if(calculateMaxHistogramValue(singleContour, false) == 29) {
-               cv::Mat colorMask(drawing.rows, drawing.cols, CV_8UC3, cv::Scalar(0, 255, 255)), final;
-               cv::bitwise_and(colorMask, colorMask, final, drawing);
-               finalImage += final;
-           } else if(calculateMaxHistogramValue(singleContour, false) == 59) {
+                cv::Mat colorMask(drawing.rows, drawing.cols, CV_8UC3, cv::Scalar(0, 255, 255)), final;
+                cv::bitwise_and(colorMask, colorMask, final, drawing);
+                finalImage += final;
+            } else if(calculateMaxHistogramValue(singleContour, false) == 59) {
                 cv::Mat colorMask(drawing.rows, drawing.cols, CV_8UC3, cv::Scalar(0, 255, 0)), final;
                 cv::bitwise_and(colorMask, colorMask, final, drawing);
-               finalImage += final;
+                finalImage += final;
             } else if(calculateMaxHistogramValue(singleContour, false) == 119) {
                 cv::Mat colorMask(drawing.rows, drawing.cols, CV_8UC3, cv::Scalar(255, 0, 0)), final;
                 cv::bitwise_and(colorMask, colorMask, final, drawing);
-               finalImage += final;
+                finalImage += final;
             }  else if(calculateMaxHistogramValue(singleContour, false) == 140) {
                 cv::Mat colorMask(drawing.rows, drawing.cols, CV_8UC3, cv::Scalar(211, 0, 148)), final;
                 cv::bitwise_and(colorMask, colorMask, final, drawing);
-               finalImage += final;
+                finalImage += final;
             } else if (calculateMaxHistogramValue(singleContour, false) == 173) {
-               // std::cout<<calculateMaxHistogramValue(singleContour)<<std::endl;
-               cv::Mat colorMask(drawing.rows, drawing.cols, CV_8UC3, cv::Scalar(0, 0, 255)), final;
-               cv::bitwise_and(colorMask, colorMask, final, drawing);
-               finalImage += final;
-           } else {
-               cv::Mat colorMask(drawing.rows, drawing.cols, CV_8UC3, cv::Scalar(50, 50, 50)), final;
-               cv::bitwise_and(colorMask, colorMask, final, drawing);
-               finalImage += final;
-           }
+                // std::cout<<calculateMaxHistogramValue(singleContour)<<std::endl;
+                cv::Mat colorMask(drawing.rows, drawing.cols, CV_8UC3, cv::Scalar(0, 0, 255)), final;
+                cv::bitwise_and(colorMask, colorMask, final, drawing);
+                finalImage += final;
+            } else {
+                cv::Mat colorMask(drawing.rows, drawing.cols, CV_8UC3, cv::Scalar(50, 50, 50)), final;
+                cv::bitwise_and(colorMask, colorMask, final, drawing);
+                finalImage += final;
+            }
         }
     }
 
     return finalImage;
 }
 
-
-cv::Mat ImageAnalyzer::colorSegmentation2D(cv::Mat img) {
+cv::Mat ImageAnalyzer::emphasizeObjects2D(cv::Mat img) {
     cv::Mat imgSegmented, _image;
-    img.copyTo(_image);
+    //img.copyTo(_image);
     //cv::GaussianBlur(imgSegmented, imgSegmented, cv::Size(15, 15), 0);
 
     /*
@@ -224,6 +224,82 @@ cv::Mat ImageAnalyzer::colorSegmentation2D(cv::Mat img) {
     cv::bilateralFilter ( imgSegmented, _image, 9, 9, 7 );
     cv::bilateralFilter ( _image, imgSegmented,  9, 9, 7 );
     */
+
+    cv::cvtColor(img, imgSegmented, cv::COLOR_BGR2HSV);
+
+    std::map<QString, cv::Scalar> hsvRanges = generateHsvRanges();
+
+    std::vector<cv::Scalar> minColorRanges = getMinColorRanges(hsvRanges);
+    std::vector<cv::Scalar> maxColorRanges = getMaxColorRanges(hsvRanges);
+    std::vector<QString> minColorLabels = getMinColorLabels(hsvRanges);
+    std::vector<QString> maxColorLabels = getMaxColorLabels(hsvRanges);
+
+
+    std::vector<cv::Mat> masks(minColorRanges.size());
+    std::vector<cv::Mat> colorMasks(minColorRanges.size());
+    cv::RNG rng(12345);
+
+    cv::Mat finalRes(img.rows, img.cols, CV_8UC3, cv::Scalar(0, 0, 0));
+    /*cv::imshow("black", finalRes);
+    cv::waitKey(0);
+    cv::destroyAllWindows();*/
+
+    for(unsigned int i = 0; i < minColorRanges.size(); i++) {
+        //Create masks
+        cv::inRange(imgSegmented, minColorRanges[i], maxColorRanges[i], masks[i]);
+
+        cv::dilate(masks[i], masks[i], cv::Mat::ones(3, 3, CV_8UC1));
+        cv::dilate(masks[i], masks[i], cv::Mat::ones(3, 3, CV_8UC1));
+
+        cv::erode(masks[i], masks[i], cv::Mat::ones(3, 3, CV_8UC1));
+        cv::erode(masks[i], masks[i], cv::Mat::ones(3, 3, CV_8UC1));
+
+        //Create color masks (single color images)
+        QString colorLabel = minColorLabels[i];
+        cv::Scalar color = getColor(colorLabel);
+        if(colorLabel.contains("Gray") || colorLabel.contains("White") || colorLabel.contains("Black")) continue;
+        cv::Mat colorMask(img.rows, img.cols, CV_8UC3, color);
+        cv::Mat colorMaskHSV;
+
+        cv::cvtColor(colorMask, colorMaskHSV, cv::COLOR_BGR2HSV);
+
+        colorMasks[i] = colorMaskHSV;
+
+        std::vector<std::vector<cv::Point> > contours;
+        std::vector<cv::Vec4i> hierarchy;
+        cv::findContours( masks[i], contours, hierarchy, cv::RETR_CCOMP, cv::CHAIN_APPROX_SIMPLE );
+
+        unsigned long totalArea = 0;
+        for ( int i=0; i < static_cast<int>(contours.size()); i++ )
+            totalArea += cv::contourArea(contours[i]);
+
+        for ( int i=0; i < static_cast<int>(contours.size()); i++ ) {
+            float perc = cv::contourArea(contours[i]) * 100.0 / totalArea;
+            // look for hierarchy[i][3]!=-1, ie hole boundaries
+            if ( hierarchy[i][3] != -1 && perc >= 0.3 && perc < 3 ) {
+                //if (perc >= 0.1 && perc < 0.7 ) {
+                // random colour
+                cv::Scalar colour(0, 0, 255);
+                cv::drawContours( finalRes, contours, i, colour, cv::FILLED );
+            }
+        }
+    }
+    return finalRes;
+}
+
+
+cv::Mat ImageAnalyzer::colorSegmentation2D(cv::Mat img) {
+    cv::Mat imgSegmented, _image;
+    img.copyTo(_image);
+    //cv::GaussianBlur(imgSegmented, imgSegmented, cv::Size(15, 15), 0);
+
+
+    cv::bilateralFilter ( _image, imgSegmented, 9, 9, 7 );
+    cv::bilateralFilter ( imgSegmented, _image, 9, 9, 7 );
+    cv::bilateralFilter ( _image, imgSegmented,  9, 9, 7 );
+    cv::bilateralFilter ( imgSegmented, _image, 9, 9, 7 );
+    cv::bilateralFilter ( _image, imgSegmented,  9, 9, 7 );
+
     cv::cvtColor(img, imgSegmented, cv::COLOR_BGR2HSV);
 
     std::map<QString, cv::Scalar> hsvRanges = generateHsvRanges();
@@ -264,8 +340,15 @@ cv::Mat ImageAnalyzer::colorSegmentation2D(cv::Mat img) {
         cv::cvtColor(colorMask, colorMaskHSV, cv::COLOR_BGR2HSV);
         colorMasks[i] = colorMaskHSV;
 
+        std::vector<std::vector<cv::Point> > contours;
+        cv::findContours(masks[i], contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+        int totalArea = 0;
+        cv::Mat finalImage(masks[i].rows, masks[i].cols, CV_8UC3);
+        for(int i = 0; i < static_cast<int>(contours.size()); i++) {
+            totalArea += cv::contourArea(contours[i]);
+        }
+        this->colorFrequency.insert(colorLabel, totalArea);
     }
-
 
     cv::Mat hsvResFinal = cv::Mat::zeros(colorMasks[0].rows, colorMasks[0].cols, CV_8UC3);
     for(unsigned int i = 0; i < minColorRanges.size(); i++) {
@@ -279,6 +362,10 @@ cv::Mat ImageAnalyzer::colorSegmentation2D(cv::Mat img) {
     cv::cvtColor(hsvResFinal, hsvResFinal, cv::COLOR_HSV2BGR);
 
     return hsvResFinal;
+}
+
+QMap<QString, int> ImageAnalyzer::getColorFrequency() {
+    return colorFrequency;
 }
 
 
@@ -429,12 +516,12 @@ int ImageAnalyzer::calculateMaxHistogramValue(cv::Mat img, bool display) {
 
     cv::Mat h_hist;
 
-      /// Compute the histograms:
-    cv::calcHist( &hsvPlanes[0], 1, 0, cv::Mat(), h_hist, 1, &histSize, &histRange, uniform, accumulate );
+    /// Compute the histograms:
+    cv::calcHist( &hsvPlanes[0], 1, nullptr, cv::Mat(), h_hist, 1, &histSize, &histRange, uniform, accumulate );
 
-    // Draw the histograms for B, G and R
+    // Draw the histogram
     int hist_w = 512; int hist_h = 400;
-    int bin_w = cvRound( (double) hist_w/histSize );
+    int bin_w = cvRound( static_cast<double>( hist_w )/histSize );
 
     cv::Mat histImage( hist_h, hist_w, CV_8UC3,cv:: Scalar( 0,0,0) );
 
@@ -444,9 +531,9 @@ int ImageAnalyzer::calculateMaxHistogramValue(cv::Mat img, bool display) {
     /// Draw for each channel
     for( int i = 1; i < histSize; i++ ) {
 
-    line( histImage, cv::Point( bin_w*(i-1), hist_h - cvRound(h_hist.at<float>(i-1)) ) ,
-            cv::Point( bin_w*(i), hist_h - cvRound(h_hist.at<float>(i)) ),
-            cv::Scalar( 255, 0, 0), 2, 8, 0  );
+        line( histImage, cv::Point( bin_w*(i-1), hist_h - cvRound(h_hist.at<float>(i-1)) ) ,
+              cv::Point( bin_w*(i), hist_h - cvRound(h_hist.at<float>(i)) ),
+              cv::Scalar( 255, 0, 0), 2, 8, 0  );
     }
 
     // Display
@@ -463,6 +550,78 @@ int ImageAnalyzer::calculateMaxHistogramValue(cv::Mat img, bool display) {
 
     int maxElement = int(std::max_element(histValues.begin(),histValues.end()) - histValues.begin());
     return maxElement;
+}
+
+
+QMap<QString, int> ImageAnalyzer::calculateColorHistogram(QString fullpath) {
+    cv::Mat img = cv::imread(fullpath.toUtf8().data());
+    cv::Mat imgHsv;
+
+    cv::cvtColor(img, imgHsv, cv::COLOR_BGR2HSV);
+
+    std::vector<cv::Mat> hsvPlanes;
+    cv::split(imgHsv, hsvPlanes);
+
+    int histSize = 180;
+    float range[] = { 1, 181 } ;
+
+    const float* histRange = { range };
+
+    bool uniform = true; bool accumulate = false;
+
+    cv::Mat h_hist;
+
+    /// Compute the histograms:
+    cv::calcHist( &hsvPlanes[0], 1, nullptr, cv::Mat(), h_hist, 1, &histSize, &histRange, uniform, accumulate );
+
+    std::vector<int> histValues;
+    QMap<QString, int> output;
+
+    for(int i = 0; i < h_hist.rows; i++) {
+        int value = static_cast<int>(h_hist.at<float>(i,0));
+
+        if (value < 0) value = 0.0;
+
+        if((i >= 0 && i <= 6) || (i > 177 && i <= 180)) {
+            output.insert("Red", value);
+        } else if (i > 6 && i <= 11 ) {
+            output.insert("Red-orange", value);
+        } else if (i > 11 && i <= 20 ) {
+            output.insert("Orange-brown", value);
+        } else if (i > 20 && i <= 25 ) {
+            output.insert("Orange-yellow", value);
+        } else if (i > 25 && i <= 32 ) {
+            output.insert("Yellow", value);
+        } else if (i > 32 && i <= 40 ) {
+            output.insert("Yellow-green", value);
+        } else if (i > 40 && i <= 67 ) {
+            output.insert("Green", value);
+        } else if (i > 67 && i <= 85 ) {
+            output.insert("Green-cyan", value);
+        } else if (i > 85 && i <= 100 ) {
+            output.insert("Cyan", value);
+        } else if (i > 100 && i <= 110 ) {
+            output.insert("Cyan-blue", value);
+        } else if (i > 110 && i <= 121 ) {
+            output.insert("Blue", value);
+        } else if (i > 121 && i <= 140 ) {
+            output.insert("Blue-purple", value);
+        } else if (i > 140 && i <= 160 ) {
+            output.insert("Purple", value);
+        } else if (i > 160 && i <= 165 ) {
+            output.insert("Purple-pink", value);
+        } else if (i > 165 && i <= 173 ) {
+            output.insert("Pink", value);
+        } else if (i > 173 && i <= 177 ) {
+            output.insert("Pink-red", value);
+        } else {
+            qDebug() << "Other:" << value;
+            output.insert("Unknown color", value);
+        }
+    }
+
+    return output;
+
 }
 
 

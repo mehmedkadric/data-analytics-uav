@@ -9,11 +9,13 @@
 #include "QFileDialog"
 #include "inputreader.h"
 #include "controller.h"
+#include <QMap>
 
 
 class ImageAnalyzer
 {
 private:
+    QMap<QString, int> colorFrequency;
     std::map<QString, cv::Scalar> generateHsvRanges();
     cv::Scalar getColor(QString colorLabel);
     std::vector<cv::Scalar> getMinColorRanges(std::map<QString, cv::Scalar> hsvRanges);
@@ -23,6 +25,9 @@ private:
 
 public:
     ImageAnalyzer();
+    QMap<QString, int> getColorFrequency();
+    QMap<QString, int> calculateColorHistogram(QString fullpath);
+    cv::Mat emphasizeObjects2D(cv::Mat img);
     cv::Mat colorSegmentation2D(cv::Mat img);
     cv::Mat geometrySegmentation2D(cv::Mat img, bool filled);
     cv::Mat watershedSegmentation(cv::Mat src);

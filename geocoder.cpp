@@ -35,8 +35,8 @@ QString Geocoder::reverseGeocode(double latitude, double longitude) {
     QString url = "https://nominatim.openstreetmap.org/reverse?format=json&lat="
             + QString::number(latitude) + "&lon="
             + QString::number(longitude) + "&zoom=18&addressdetails=1";
-    qDebug() << url;
     QNetworkAccessManager *man = new QNetworkAccessManager();
+
     connect(man, &QNetworkAccessManager::finished, this, &Geocoder::geocodingFinished);
     QNetworkRequest request(url);
     man->get(request);

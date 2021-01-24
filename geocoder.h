@@ -15,6 +15,7 @@ public:
     QString reverseGeocode(double latitude, double longitude);
     double getDistanceFromLatLongInKm(double lat1, double long1, double lat2, double long2);
     void geocodingFinished(QNetworkReply *reply);
+    bool checkIfImageIsGeocoded(QString imgPath);
 
 private:
     double deg2rad(double deg);

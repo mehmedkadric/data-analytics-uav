@@ -15,7 +15,6 @@ JsonParser::JsonParser()
 
 QMap<QString, QString> JsonParser::getAddress(QString jsonString) {
     QMap<QString, QString> output;
-    //json jsonData = json::parse(jsonString.toUtf8().constData());
     QJsonDocument doc = QJsonDocument::fromJson(jsonString.toUtf8());
     QJsonObject jsonObject = doc.object();
     //Get address
@@ -23,9 +22,21 @@ QMap<QString, QString> JsonParser::getAddress(QString jsonString) {
 
     foreach(const QString& key, tempObj.keys()) {
             QJsonValue value = tempObj.value(key);
-            qDebug() << key << ": " << value.toString();
+            //qDebug() << key << ": " << value.toString();
             output.insert(key, value.toString());
         }
     return output;
+}
+
+QString JsonParser::getObtainedLatitude(QString jsonString) {
+    QJsonDocument doc = QJsonDocument::fromJson(jsonString.toUtf8());
+    QJsonObject jsonObject = doc.object();
+    return jsonObject.value("lat").toString();
+}
+
+QString JsonParser::getObtainedLongitude(QString jsonString) {
+    QJsonDocument doc = QJsonDocument::fromJson(jsonString.toUtf8());
+    QJsonObject jsonObject = doc.object();
+    return jsonObject.value("lon").toString();
 }
 
